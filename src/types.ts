@@ -57,4 +57,5 @@ export interface ActionInputs {
   failOnCommentError: boolean;
   skipInstall: boolean;
   githubToken: string;
+  maxArtifactPages: number;
 }

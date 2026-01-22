@@ -80,7 +80,8 @@ async function run(): Promise<void> {
     if (isMain && !isPR) {
       const baseline = await fetchBaselineArtifact(
         inputs.githubToken,
-        getBaselineBranches()
+        getBaselineBranches(),
+        inputs.maxArtifactPages
       );
       await saveBaselineArtifact(current);
       await writeJobSummary(current, baseline);
@@ -92,7 +93,8 @@ async function run(): Promise<void> {
     if (isPR) {
       const baseline = await fetchBaselineArtifact(
         inputs.githubToken,
-        getBaselineBranches()
+        getBaselineBranches(),
+        inputs.maxArtifactPages
       );
       const diff = diffBundles(
         baseline,
@@ -195,6 +197,15 @@ function readActionInputs(): ActionInputs {
   const failOnStderr = core.getInput('fail-on-stderr') === 'true';
   const failOnCommentError = core.getInput('fail-on-comment-error') === 'true';
   const skipInstall = core.getInput('skip-install') === 'true';
+
+  const maxPagesStr = core.getInput('max-artifact-pages') || '10';
+  const maxArtifactPages = parseInt(maxPagesStr, 10);
+  if (isNaN(maxArtifactPages) || maxArtifactPages <= 0) {
+    throw new Error(
+      'max-artifact-pages must be a positive integer (e.g., 10, 20, 50)'
+    );
+  }
+
   return {
     buildCommand: core.getInput('build-command') || 'npm run build',
     buildTimeoutMs: timeoutMinutes * 60 * 1000,
@@ -210,6 +221,7 @@ function readActionInputs(): ActionInputs {
     failOnCommentError,
     skipInstall,
     githubToken: core.getInput('github-token', { required: true }),
+    maxArtifactPages,
   };
 }
 

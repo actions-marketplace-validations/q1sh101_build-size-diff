@@ -58,6 +58,10 @@ inputs:
   github-token:
     description: 'GitHub token for PR comments and artifact access'
     required: true
+  max-artifact-pages:
+    description: 'Maximum number of artifact pages to search (100 artifacts per page). Prevents long searches in repos with many artifacts.'
+    required: false
+    default: '10'
 
 outputs:
   total-size:
