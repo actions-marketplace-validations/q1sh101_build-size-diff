@@ -77,7 +77,8 @@ export async function saveBaselineArtifact(stats: BundleStats): Promise<void> {
 
 export async function fetchBaselineArtifact(
   token: string,
-  branches: string[]
+  branches: string[],
+  maxPages: number = 10
 ): Promise<BundleStats | null> {
   const octokit = github.getOctokit(token);
   const { owner, repo } = github.context.repo;
@@ -85,6 +86,12 @@ export async function fetchBaselineArtifact(
   try {
     const branchSet = new Set(branches);
     let artifact: ArtifactItem | null = null;
+    let pageCount = 0;
+    let totalArtifactsChecked = 0;
+
+    core.info(
+      `Searching for baseline artifact (max ${maxPages} pages, ${maxPages * 100} artifacts)`
+    );
 
     for await (const response of octokit.paginate.iterator(
       octokit.rest.actions.listArtifactsForRepo,
@@ -94,7 +101,10 @@ export async function fetchBaselineArtifact(
         per_page: 100,
       }
     )) {
+      pageCount++;
       const artifacts = extractArtifacts(response.data);
+      totalArtifactsChecked += artifacts.length;
+
       for (const item of artifacts) {
         if (item.name !== ARTIFACT_NAME || item.expired) continue;
         const headBranch = item.workflow_run?.head_branch;
@@ -103,11 +113,29 @@ export async function fetchBaselineArtifact(
           break;
         }
       }
-      if (artifact) break;
+
+      if (artifact) {
+        core.info(
+          `Found baseline artifact after checking ${totalArtifactsChecked} artifacts (${pageCount} pages)`
+        );
+        break;
+      }
+
+      if (pageCount >= maxPages) {
+        core.warning(
+          `Reached max artifact search limit (${maxPages} pages, ${totalArtifactsChecked} artifacts checked). ` +
+            `No baseline found for branches: ${branches.join(', ')}. ` +
+            `Increase max-artifact-pages if your baseline is older. ` +
+            `Current repository has more than ${totalArtifactsChecked} artifacts - consider reducing artifact retention.`
+        );
+        return null;
+      }
     }
 
     if (!artifact) {
-      core.info(`No baseline artifact found for ${branches.join(', ')}`);
+      core.info(
+        `No baseline artifact found for ${branches.join(', ')} after checking ${totalArtifactsChecked} artifacts (${pageCount} pages)`
+      );
       return null;
     }
 

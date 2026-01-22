@@ -163,6 +163,7 @@ If your build output already exists (e.g., `.next` is prebuilt), you can skip de
 | `fail-on-stderr`         | No       | `false`         | Fail build if stderr output is non-empty         |
 | `fail-on-comment-error`  | No       | `false`         | Fail workflow if PR comment cannot be posted     |
 | `skip-install`           | No       | `false`         | Skip dependency installation (use if prebuilt)   |
+| `max-artifact-pages`     | No       | `10`            | Max artifact pages to search (100 per page)      |
 
 **Comparison metric:** All budget and threshold checks use a single metric determined by:
 
